@@ -1,0 +1,361 @@
+// ============================================
+// Bible Palace — Prisma Schema
+// Railway MySQL
+// ============================================
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+// ══════════════════════════════════════════════
+// 성경 데이터 모델
+// ══════════════════════════════════════════════
+
+// ─── 성경 책 (66권) ───
+model Book {
+  id            Int       @id @default(autoincrement())
+  name          String    @db.VarChar(50)  // 한글 이름: "창세기"
+  nameEn        String    @map("name_en") @db.VarChar(50)  // English: "Genesis"
+  abbreviation  String    @db.VarChar(10)  // 약어: "창", "Gen"
+  testament     Testament // 구약/신약
+  orderNum      Int       @map("order_num")  // 순서 1~66
+  chapterCount  Int       @map("chapter_count")
+  chapters      Chapter[]
+  createdAt     DateTime  @default(now()) @map("created_at")
+
+  @@map("books")
+}
+
+// ─── 장 ───
+model Chapter {
+  id          Int      @id @default(autoincrement())
+  bookId      Int      @map("book_id")
+  chapterNum  Int      @map("chapter_num")
+  book        Book     @relation(fields: [bookId], references: [id])
+  verses      Verse[]
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@unique([bookId, chapterNum])
+  @@index([bookId])
+  @@map("chapters")
+}
+
+// ─── 절 ───
+model Verse {
+  id           Int           @id @default(autoincrement())
+  chapterId    Int           @map("chapter_id")
+  verseNum     Int           @map("verse_num")
+  text         String        @db.Text
+  textEn       String?       @map("text_en") @db.Text
+  chapter      Chapter       @relation(fields: [chapterId], references: [id])
+  bookmarks    Bookmark[]
+  highlights   Highlight[]
+  palaceVerses PalaceVerse[]
+  createdAt    DateTime      @default(now()) @map("created_at")
+
+  @@unique([chapterId, verseNum])
+  @@index([chapterId])
+  @@map("verses")
+}
+
+// ══════════════════════════════════════════════
+// 사용자 & 인증 모델
+// ══════════════════════════════════════════════
+
+// ─── 사용자 ───
+model User {
+  id               Int                  @id @default(autoincrement())
+  email            String               @unique @db.VarChar(255)
+  name             String?              @db.VarChar(100)
+  password         String?              @db.VarChar(255)  // credentials 인증용 (optional)
+  avatarUrl        String?              @map("avatar_url") @db.VarChar(500)
+  image            String?              @db.VarChar(500)  // NextAuth 프로필 이미지
+  emailVerified    DateTime?            @map("email_verified")  // NextAuth 이메일 인증
+  bookmarks        Bookmark[]
+  highlights       Highlight[]
+  notes            Note[]
+  palaces          Palace[]
+  attempts         MemorizationAttempt[]
+  reviewSchedules  ReviewSchedule[]
+  groupMemberships CellGroupMember[]
+  badges           UserBadge[]
+  accounts         Account[]
+  sessions         Session[]
+  createdAt        DateTime             @default(now()) @map("created_at")
+  updatedAt        DateTime             @updatedAt @map("updated_at")
+
+  @@map("users")
+}
+
+// ─── NextAuth: Account ───
+model Account {
+  id                String  @id @default(cuid())
+  userId            Int     @map("user_id")
+  type              String  @db.VarChar(50)
+  provider          String  @db.VarChar(50)
+  providerAccountId String  @map("provider_account_id") @db.VarChar(255)
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String? @db.VarChar(50)
+  scope             String? @db.VarChar(500)
+  id_token          String? @db.Text
+  session_state     String? @db.VarChar(255)
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+  @@map("accounts")
+}
+
+// ─── NextAuth: Session ───
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique @map("session_token") @db.VarChar(500)
+  userId       Int      @map("user_id")
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+// ─── NextAuth: VerificationToken ───
+model VerificationToken {
+  identifier String @db.VarChar(255)
+  token      String @unique @db.VarChar(500)
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+// ══════════════════════════════════════════════
+// 사용자 활동 모델 (기존)
+// ══════════════════════════════════════════════
+
+// ─── 북마크 ───
+model Bookmark {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  verseId   Int      @map("verse_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  verse     Verse    @relation(fields: [verseId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([userId, verseId])
+  @@index([userId])
+  @@index([verseId])
+  @@map("bookmarks")
+}
+
+// ─── 하이라이트 ───
+model Highlight {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  verseId   Int      @map("verse_id")
+  color     String   @default("#FFEB3B") @db.VarChar(20)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  verse     Verse    @relation(fields: [verseId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([userId, verseId])
+  @@index([userId])
+  @@index([verseId])
+  @@map("highlights")
+}
+
+// ─── 노트/메모 ───
+model Note {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  title     String?  @db.VarChar(255)
+  content   String   @db.Text
+  bookRef   String?  @map("book_ref") @db.VarChar(50)  // "창 1:1" 같은 참조
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([userId])
+  @@map("notes")
+}
+
+// ══════════════════════════════════════════════
+// 기억의 궁전 모델 (Palace)
+// ══════════════════════════════════════════════
+
+// ─── 기억의 궁전 인스턴스 ───
+model Palace {
+  id              String               @id @default(cuid())
+  userId          Int                  @map("user_id")
+  name            String               @db.VarChar(200)  // "시편 23편 궁전"
+  verseRef        String               @map("verse_ref") @db.VarChar(100)  // "시편 23:1-6"
+  verseText       String               @map("verse_text") @db.Text
+  templateKey     String               @map("template_key") @db.VarChar(50)  // "default_apartment_20"
+  narrative       String?              @db.Text  // 전체 워크스루 내러티브
+  imageStyle      String               @default("watercolor") @map("image_style") @db.VarChar(30)
+  user            User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  loci            PalaceLocus[]
+  palaceVerses    PalaceVerse[]
+  attempts        MemorizationAttempt[]
+  reviewSchedules ReviewSchedule[]
+  createdAt       DateTime             @default(now()) @map("created_at")
+  updatedAt       DateTime             @updatedAt @map("updated_at")
+
+  @@index([userId])
+  @@map("palaces")
+}
+
+// ─── 궁전 내 개별 위치(Locus) ───
+model PalaceLocus {
+  id               String  @id @default(cuid())
+  palaceId         String  @map("palace_id")
+  locusIndex       Int     @map("locus_index")  // 0-19
+  locusName        String  @map("locus_name") @db.VarChar(50)  // "엘리베이터"
+  segmentText      String? @map("segment_text") @db.Text  // 배정된 구절 분절
+  keyword          String? @db.VarChar(100)  // 핵심 키워드
+  imageDescription String? @map("image_description") @db.Text  // 한국어 이미지 묘사
+  imageUrl         String? @map("image_url") @db.VarChar(1000)  // 생성된 이미지 URL
+  imagePrompt      String? @map("image_prompt") @db.Text  // FLUX용 영어 프롬프트
+  senses           String? @db.Text  // JSON: 오감 묘사 배열
+  palace           Palace  @relation(fields: [palaceId], references: [id], onDelete: Cascade)
+
+  @@unique([palaceId, locusIndex])
+  @@index([palaceId])
+  @@map("palace_loci")
+}
+
+// ─── 궁전-성경구절 연결 ───
+model PalaceVerse {
+  id       String @id @default(cuid())
+  palaceId String @map("palace_id")
+  verseId  Int    @map("verse_id")
+  orderNum Int    @map("order_num")  // 궁전 내 순서
+  palace   Palace @relation(fields: [palaceId], references: [id], onDelete: Cascade)
+  verse    Verse  @relation(fields: [verseId], references: [id], onDelete: Cascade)
+
+  @@unique([palaceId, verseId])
+  @@index([palaceId])
+  @@index([verseId])
+  @@map("palace_verses")
+}
+
+// ══════════════════════════════════════════════
+// 복습 & 테스트 모델
+// ══════════════════════════════════════════════
+
+// ─── 간격 반복 스케줄 (SM-2) ───
+model ReviewSchedule {
+  id             String    @id @default(cuid())
+  userId         Int       @map("user_id")
+  palaceId       String    @map("palace_id")
+  difficulty     String    @default("moderate") @db.VarChar(20)
+  repetitionNum  Int       @default(0) @map("repetition_num")
+  easeFactor     Float     @default(2.5) @map("ease_factor")
+  intervalDays   Int       @default(1) @map("interval_days")
+  nextReviewAt   DateTime  @map("next_review_at")
+  lastReviewedAt DateTime? @map("last_reviewed_at")
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  palace         Palace    @relation(fields: [palaceId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, palaceId])
+  @@index([userId, nextReviewAt])
+  @@map("review_schedules")
+}
+
+// ─── 암송 시도 기록 ───
+model MemorizationAttempt {
+  id        String   @id @default(cuid())
+  userId    Int      @map("user_id")
+  palaceId  String   @map("palace_id")
+  userText  String   @map("user_text") @db.Text  // 사용자가 입력한 텍스트
+  score     Float    // 0.0 - 1.0
+  quality   Int      // SM-2 quality 0-5
+  feedback  String?  @db.Text  // 한국어 피드백
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  palace    Palace   @relation(fields: [palaceId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([userId, palaceId])
+  @@index([userId, createdAt])
+  @@map("memorization_attempts")
+}
+
+// ══════════════════════════════════════════════
+// 셀 그룹 모델
+// ══════════════════════════════════════════════
+
+// ─── 셀 그룹 (구역 예배/셀 모임) ───
+model CellGroup {
+  id          String            @id @default(cuid())
+  name        String            @db.VarChar(200)
+  description String?           @db.Text
+  inviteCode  String            @unique @map("invite_code") @db.VarChar(20)
+  ownerId     Int               @map("owner_id")
+  members     CellGroupMember[]
+  createdAt   DateTime          @default(now()) @map("created_at")
+  updatedAt   DateTime          @updatedAt @map("updated_at")
+
+  @@index([ownerId])
+  @@map("cell_groups")
+}
+
+// ─── 셀 그룹 멤버 ───
+model CellGroupMember {
+  id       String    @id @default(cuid())
+  groupId  String    @map("group_id")
+  userId   Int       @map("user_id")
+  role     String    @default("member") @db.VarChar(20)  // "owner", "leader", "member"
+  group    CellGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  joinedAt DateTime  @default(now()) @map("joined_at")
+
+  @@unique([groupId, userId])
+  @@index([userId])
+  @@map("cell_group_members")
+}
+
+// ══════════════════════════════════════════════
+// 배지 시스템
+// ══════════════════════════════════════════════
+
+// ─── 배지 정의 ───
+model Badge {
+  id          String      @id @default(cuid())
+  name        String      @db.VarChar(100)  // "첫 궁전"
+  description String      @db.VarChar(500)  // "첫 번째 기억의 궁전을 만들었습니다"
+  iconEmoji   String      @map("icon_emoji") @db.VarChar(10)  // "🏛️"
+  condition   String      @db.VarChar(200)  // "palace_count:1"
+  category    String      @default("memorization") @db.VarChar(30)  // 카테고리
+  userBadges  UserBadge[]
+
+  @@map("badges")
+}
+
+// ─── 사용자 획득 배지 ───
+model UserBadge {
+  id       String   @id @default(cuid())
+  userId   Int      @map("user_id")
+  badgeId  String   @map("badge_id")
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  badge    Badge    @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+  earnedAt DateTime @default(now()) @map("earned_at")
+
+  @@unique([userId, badgeId])
+  @@index([userId])
+  @@map("user_badges")
+}
+
+// ══════════════════════════════════════════════
+// Enums
+// ══════════════════════════════════════════════
+
+enum Testament {
+  OLD
+  NEW
+}

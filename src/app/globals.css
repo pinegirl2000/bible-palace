@@ -1,26 +1,181 @@
 @import "tailwindcss";
 
+/* ============================================
+   Bible Palace — Global Styles
+   Clean white modern theme with indigo accents
+   ============================================ */
+
 :root {
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #1a1a2e;
+
+  --primary: #4f46e5;
+  --primary-light: #818cf8;
+  --primary-bg: #eef2ff;
+  --surface: #f8fafc;
+  --border: #e2e8f0;
+  --muted: #94a3b8;
+  --card: #ffffff;
+
+  --success: #10b981;
+  --warning: #f59e0b;
+  --error: #ef4444;
+  --info: #3b82f6;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-primary: var(--primary);
+  --color-primary-light: var(--primary-light);
+  --color-primary-bg: var(--primary-bg);
+  --color-surface: var(--surface);
+  --color-border: var(--border);
+  --color-muted: var(--muted);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: "Pretendard", var(--font-geist-sans), -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+.card-hover {
+  transition: all 0.2s ease;
+}
+.card-hover:hover {
+  border-color: var(--primary-light);
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.08);
+  transform: translateY(-1px);
+}
+
+.verse-image-overlay {
+  position: relative;
+  overflow: hidden;
+  border-radius: 0.75rem;
+}
+.verse-image-overlay .overlay-text {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  padding: 1rem;
+  background: linear-gradient(to top, rgba(0,0,0,0.7), transparent);
+  color: white;
+}
+.verse-image-overlay .overlay-keyword {
+  position: absolute; top: 0.5rem; right: 0.5rem;
+  padding: 0.25rem 0.75rem;
+  background: var(--primary);
+  color: white;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.step-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem; height: 2rem;
+  border-radius: 9999px;
+  background: var(--primary);
+  color: white;
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+/* ═══ Base Animations ═══ */
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in-up { animation: fadeInUp 0.4s ease-out forwards; }
+
+@keyframes pulse-primary {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(79, 70, 229, 0.3); }
+  50% { box-shadow: 0 0 0 8px rgba(79, 70, 229, 0); }
+}
+.pulse-primary { animation: pulse-primary 2s infinite; }
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
+
+/* ═══ Room & Object Animations ═══ */
+
+@keyframes roomZoomIn {
+  from { transform: scale(0.6); opacity: 0; filter: blur(8px); }
+  to { transform: scale(1); opacity: 1; filter: blur(0); }
+}
+.room-enter { animation: roomZoomIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+
+@keyframes roomZoomOut {
+  from { transform: scale(1); opacity: 1; }
+  to { transform: scale(1.3); opacity: 0; filter: blur(6px); }
+}
+.room-exit { animation: roomZoomOut 0.35s ease-in forwards; }
+
+@keyframes objectPulse {
+  0%, 100% { transform: translate(-50%, -50%) scale(1); box-shadow: 0 0 0 0 rgba(99,102,241,0.5); }
+  50% { transform: translate(-50%, -50%) scale(1.1); box-shadow: 0 0 0 14px rgba(99,102,241,0); }
+}
+.object-pulse { animation: objectPulse 2.5s ease-in-out infinite; }
+
+@keyframes objectAppear {
+  from { opacity: 0; transform: translate(-50%, -50%) scale(0.3); }
+  to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+.object-appear { animation: objectAppear 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+
+/* ═══ Loading Shimmer ═══ */
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.img-shimmer {
+  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+/* ═══ Card & Node Graph Styles ═══ */
+
+.room-card-hover {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.room-card-hover:hover {
+  transform: translateY(-4px) scale(1.02);
+  box-shadow: 0 12px 28px rgba(0,0,0,0.12);
+}
+
+/* Node graph glow for selected node */
+@keyframes nodeGlow {
+  0%, 100% { filter: drop-shadow(0 0 0 rgba(79, 70, 229, 0)); }
+  50% { filter: drop-shadow(0 0 6px rgba(79, 70, 229, 0.4)); }
+}
+.node-glow { animation: nodeGlow 2s ease-in-out infinite; }
+
+/* Canvas section transition */
+@keyframes canvasSlideIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.canvas-enter { animation: canvasSlideIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+
+/* Frosted glass effect */
+.frosted-glass {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
