@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "agent": "tsx src/agent/index.ts",
-    "agent:review": "tsx src/agent/review.ts"
+    "agent:review": "tsx src/agent/review.ts",
+    "agent:pm": "tsx src/agent/pm.ts"
   },
   "dependencies": {
     "@anthropic-ai/claude-code": "^2.1.52",

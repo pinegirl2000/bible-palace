@@ -1,0 +1,33 @@
+{
+  "version": "1.0.0",
+  "projects": [
+    {
+      "code": "BP",
+      "name": "Bible Palace",
+      "nameKo": "바이블 팰리스",
+      "directory": "C:\\CHSA\\bible-palace",
+      "description": "기억의 궁전 성경 암송 웹앱 (Next.js 16 + Prisma + Redis)",
+      "tech": ["next.js", "prisma", "redis", "typescript", "tailwindcss"],
+      "entryPoints": {
+        "web": "src/app",
+        "agent": "src/agent",
+        "api": "src/app/api",
+        "db": "prisma/schema.prisma"
+      },
+      "keyFiles": [
+        "package.json",
+        "prisma/schema.prisma",
+        "src/app/layout.tsx",
+        "tsconfig.json"
+      ],
+      "scripts": {
+        "dev": "npm run dev",
+        "build": "npm run build",
+        "lint": "npm run lint",
+        "agent": "npm run agent"
+      },
+      "active": true,
+      "createdAt": "2026-02-24T00:00:00.000Z"
+    }
+  ]
+}
